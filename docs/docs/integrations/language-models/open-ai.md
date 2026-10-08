@@ -320,6 +320,60 @@ String mimeType = response.audio().mimeType();      // e.g. "audio/mpeg"
 The input text must not exceed 4096 characters (the OpenAI Speech API limit);
 longer input causes an `IllegalArgumentException`.
 
+## Creating `OpenAiAudioTranscriptionModel`
+
+`OpenAiAudioTranscriptionModel` performs speech-to-text (STT) transcription using the
+[OpenAI Audio API](https://platform.openai.com/docs/api-reference/audio/createTranscription).
+It returns the transcribed text wrapped in an `AudioTranscriptionResponse`.
+
+The supported models are `whisper-1`, `gpt-4o-transcribe`, `gpt-4o-mini-transcribe`,
+and `gpt-4o-transcribe-diarize` (see `OpenAiAudioTranscriptionModelName`).
+
+::::note
+`OpenAiAudioTranscriptionModel` is currently marked `@Experimental`.
+:::
+
+### Plain Java
+```java
+import dev.langchain4j.data.audio.Audio;
+import dev.langchain4j.model.audio.AudioTranscriptionModel;
+import dev.langchain4j.model.audio.AudioTranscriptionRequest;
+import dev.langchain4j.model.audio.AudioTranscriptionResponse;
+import dev.langchain4j.model.openai.OpenAiAudioTranscriptionModel;
+import dev.langchain4j.model.openai.OpenAiAudioTranscriptionModelName;
+
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
+AudioTranscriptionModel model = OpenAiAudioTranscriptionModel.builder()
+        .apiKey(System.getenv("OPENAI_API_KEY"))
+        .modelName(OpenAiAudioTranscriptionModelName.WHISPER_1)
+        .build();
+
+// Convenience method (transcribes and returns plain text):
+byte[] audioBytes = Files.readAllBytes(Paths.get("audio.mp3"));
+Audio audio = Audio.builder()
+        .binaryData(audioBytes)
+        .mimeType("audio/mpeg")
+        .build();
+String transcription = model.transcribeToText(audio);
+
+// Or with an explicit request (optional parameters):
+AudioTranscriptionRequest request = AudioTranscriptionRequest.builder()
+        .audio(audio)
+        .language("en") // optional, ISO-639-1 language code
+        .prompt("...") // optional, guides the model's style/vocabulary
+        .temperature(0.0) // optional
+        .build();
+AudioTranscriptionResponse response = model.transcribe(request);
+String text = response.text();
+```
+
+Audio must be provided as binary data (or base64-encoded data); URL-based audio
+is not supported and causes an `IllegalArgumentException`.
+
+The audio file must not exceed 25 MB (the OpenAI Audio API limit).
+
 ## Creating `OpenAiTokenCountEstimator`
 
 ```java
